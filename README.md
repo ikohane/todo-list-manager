@@ -14,7 +14,7 @@ cd todo-list-manager
 2. Make sure the scripts are executable:
 ```bash
 chmod +x generate_todo.sh
-chmod +x html2todo.py
+chmod +x html2todo.sh
 ```
 
 ## Todo List Format
@@ -48,9 +48,19 @@ Specify input and output files:
 
 ### Convert HTML back to Text
 
-Convert an HTML file back to text format:
+Basic usage (looks for todos.html in current directory):
 ```bash
-python3 html2todo.py todos.html new_todos.txt
+./html2todo.sh
+```
+
+Specify input and output files:
+```bash
+./html2todo.sh -i my-todos.html -o output.txt
+```
+
+Show help message:
+```bash
+./html2todo.sh --help
 ```
 
 ## Features
@@ -69,7 +79,8 @@ python3 html2todo.py todos.html new_todos.txt
 - Preserves structure when converting back from HTML
 
 ## File Structure
-- `generate_todo.sh`: Main conversion script
+- `generate_todo.sh`: Script to convert text to HTML
+- `html2todo.sh`: Script to convert HTML back to text
 - `todo2html.py`: Core HTML generation logic
-- `html2todo.py`: HTML to text conversion
+- `html2todo.py`: Core text generation logic
 - `todos.txt`: Sample todo list
