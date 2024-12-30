@@ -124,20 +124,20 @@ def main():
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             line-height: 1.6;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
             background-color: #f5f5f5;
         }
         .container {
             background-color: white;
-            padding: 30px;
+            padding: 15px;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .todo-item {
-            margin: 10px 0;
-            padding: 10px;
+            margin: 5px 0;
+            padding: 5px;
             border-left: 4px solid #ddd;
             background-color: #fff;
             transition: all 0.3s ease;
@@ -236,8 +236,8 @@ def main():
         }
         .todo-item.header {
             border-left: none !important;
-            margin-top: 25px;
-            margin-bottom: 15px;
+            margin-top: 15px;
+            margin-bottom: 10px;
             padding: 0;
             background: none;
         }
