@@ -4,7 +4,9 @@ from bs4 import BeautifulSoup
 import re
 
 def extract_level(classes):
-    level_match = re.search(r'level-(\d+)', classes)
+    if isinstance(classes, list):
+        classes = ' '.join(classes)
+    level_match = re.search(r'level-(\d+)', str(classes))
     return int(level_match.group(1)) if level_match else 0
 
 def extract_due_date(todo_item):
