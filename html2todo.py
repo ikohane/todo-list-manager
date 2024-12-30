@@ -25,7 +25,8 @@ def extract_tag(todo_item):
 
 def html_to_todo(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
-    todos = []
+    active_todos = []
+    done_todos = []
     
     for todo_item in soup.find_all('div', class_='todo-item'):
         # Get level
@@ -49,9 +50,16 @@ def html_to_todo(html_content):
         if tag:
             todo_line += f" :{tag}"
         
-        todos.append(todo_line)
+        # Add to appropriate list based on done status
+        if 'done' in todo_item.get('class', []):
+            done_todos.append(todo_line)
+        else:
+            active_todos.append(todo_line)
     
-    return '\n'.join(todos)
+    # Combine lists with DONE separator
+    if done_todos:
+        return '\n'.join(active_todos + ['DONE'] + done_todos)
+    return '\n'.join(active_todos)
 
 def main():
     html_content = sys.stdin.read()
