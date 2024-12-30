@@ -128,12 +128,60 @@ def generate_html(todos):
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .export-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .export-button:hover {
+            background-color: #0056b3;
         }
     </style>
+    <script>
+        function exportToText() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const formData = new FormData();
+            formData.append('html_file', blob, 'todos.html');
+            
+            fetch('/export', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                const textBlob = new Blob([text], { type: 'text/plain' });
+                const downloadUrl = URL.createObjectURL(textBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'exported_todos.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+            })
+            .catch(error => {
+                console.error('Export failed:', error);
+                alert('Export failed. Please try running the export_todo.sh script directly.');
+            });
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <div class="header">Todo List</div>
+        <div class="header">
+            <span>Todo List</span>
+            <button class="export-button" onclick="exportToText()">Export to Text</button>
+        </div>
 """
     
     for todo in todos:
