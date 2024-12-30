@@ -153,7 +153,7 @@ def generate_html(todos):
             const formData = new FormData();
             formData.append('html_file', blob, 'todos.html');
             
-            fetch('/export', {
+            fetch('http://localhost:8000/export', {
                 method: 'POST',
                 body: formData
             })
