@@ -9,6 +9,8 @@ class TodoItem:
         self.due_date = due_date
         self.tag = tag
         self.indent_level = indent_level
+        self.is_header = False
+        self.is_done = False
 
 def parse_todo_line(line, is_done=False):
     # Remove leading/trailing whitespace
@@ -28,6 +30,13 @@ def parse_todo_line(line, is_done=False):
     if match:
         level = len(match.group(1))
         line = line[match.end():]
+    else:
+        # If no + symbols and no other markers, treat as a header
+        if not re.search(r'\b\d{1,2}/\d{1,2}/\d{2,4}\b', line) and ':' not in line:
+            level = 1
+            todo = TodoItem(level, line, None, None, indent_level)
+            todo.is_header = True
+            return todo
     
     # Extract tag if present
     tag = None
@@ -47,6 +56,7 @@ def parse_todo_line(line, is_done=False):
     
     todo = TodoItem(level, description, due_date, tag, indent_level)
     todo.is_done = is_done
+    todo.is_header = False
     return todo
 
 def generate_html(todos):
@@ -260,6 +270,8 @@ def generate_todo_html(todos, is_done=False):
         classes = [f"todo-item level-{todo.level}"]
         if is_done:
             classes.append("done")
+        if todo.is_header:
+            classes.append("header")
         
         # Format due date if present
         date_html = ""
