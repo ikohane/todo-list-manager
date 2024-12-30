@@ -282,7 +282,8 @@ def main():
             })
             .catch(error => {
                 console.error('Export failed:', error);
-                alert('Export failed. Please try running the export_todo.sh script directly.');
+                const command = './export_todo.sh -i todos.html';
+                alert('Server not available. Running local export script: ' + command);
             });
         }
     </script>
