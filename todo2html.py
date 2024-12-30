@@ -77,12 +77,9 @@ def generate_todo_html(todos, is_done=False):
         if todo.due_date:
             try:
                 due_date = datetime.strptime(todo.due_date, "%m/%d/%y")
-                days_until = (due_date - datetime.now()).days
-                date_class = ""
-                if days_until < 0:
-                    date_class = "overdue"
-                elif days_until < 7:
-                    date_class = "due-soon"
+                current_time = datetime.now()
+                days_until = (due_date - current_time).days
+                date_class = "date-future" if due_date > current_time else "date-past"
                 date_html = f'<span class="due-date {date_class}">Due: {todo.due_date}</span>'
             except ValueError:
                 date_html = f'<span class="due-date">{todo.due_date}</span>'
@@ -198,6 +195,20 @@ def main():
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+        }
+        .timestamp {
+            font-size: 14px;
+            color: #666;
+            flex-basis: 100%;
+            margin-top: 10px;
+            text-align: right;
+        }
+        .date-past {
+            color: #dc3545 !important;
+        }
+        .date-future {
+            color: #0056b3 !important;
         }
         .export-button {
             background-color: #007bff;
@@ -293,6 +304,7 @@ def main():
         <div class="header">
             <span>Todo List</span>
             <button class="export-button" onclick="exportToText()">Export to Text</button>
+            <div class="timestamp">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
         </div>"""
     
     # Add active todos
