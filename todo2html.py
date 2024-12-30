@@ -304,7 +304,7 @@ def main():
         <div class="header">
             <span>Todo List</span>
             <button class="export-button" onclick="exportToText()">Export to Text</button>
-            <div class="timestamp">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+            <div class="timestamp">Generated: """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</div>
         </div>"""
     
     # Add active todos
