@@ -59,207 +59,6 @@ def parse_todo_line(line, is_done=False):
     todo.is_header = False
     return todo
 
-def generate_html(todos):
-    # Get current date for comparison
-    current_date = datetime.now()
-    
-    html = """<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .todo-item {
-            margin: 10px 0;
-            padding: 10px;
-            border-left: 4px solid #ddd;
-            background-color: #fff;
-            transition: all 0.3s ease;
-        }
-        .todo-item:hover {
-            transform: translateX(5px);
-            border-left-color: #007bff;
-        }
-        .level-1 { margin-left: 0px; }
-        .level-2 { margin-left: 30px; }
-        .level-3 { margin-left: 60px; }
-        .description {
-            font-size: 16px;
-            color: #333;
-        }
-        .due-date {
-            font-size: 14px;
-            color: #666;
-            margin-left: 10px;
-        }
-        .due-soon {
-            color: #f0ad4e;
-            font-weight: bold;
-        }
-        .overdue {
-            color: #d9534f;
-            font-weight: bold;
-        }
-        .tag {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .tag-family {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .tag-work {
-            background-color: #cce5ff;
-            color: #004085;
-        }
-        .tag-home {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        .tag-money {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .header {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .export-button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        .export-button:hover {
-            background-color: #0056b3;
-        }
-        .done-separator {
-            margin: 30px 0;
-            border-top: 2px dashed #ccc;
-            position: relative;
-        }
-        .done-label {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: white;
-            padding: 0 15px;
-            color: #888;
-            font-size: 14px;
-        }
-        .todo-item.done {
-            opacity: 0.6;
-            border-left-color: #ccc;
-        }
-        .todo-item.done:hover {
-            border-left-color: #888;
-        }
-    </style>
-    <script>
-        function exportToText() {
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const formData = new FormData();
-            formData.append('html_file', blob, 'todos.html');
-            
-            fetch('http://localhost:8000/export', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(text => {
-                const textBlob = new Blob([text], { type: 'text/plain' });
-                const downloadUrl = URL.createObjectURL(textBlob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = 'exported_todos.txt';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(downloadUrl);
-            })
-            .catch(error => {
-                console.error('Export failed:', error);
-                alert('Export failed. Please try running the export_todo.sh script directly.');
-            });
-        }
-    </script>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <span>Todo List</span>
-            <button class="export-button" onclick="exportToText()">Export to Text</button>
-        </div>
-"""
-    
-    for todo in todos:
-        if todo is None:
-            continue
-            
-        # Determine CSS classes
-        classes = [f"todo-item level-{todo.level}"]
-        
-        # Format due date if present
-        date_html = ""
-        if todo.due_date:
-            try:
-                due_date = datetime.strptime(todo.due_date, "%m/%d/%y")
-                days_until = (due_date - current_date).days
-                date_class = ""
-                if days_until < 0:
-                    date_class = "overdue"
-                elif days_until < 7:
-                    date_class = "due-soon"
-                date_html = f'<span class="due-date {date_class}">Due: {todo.due_date}</span>'
-            except ValueError:
-                date_html = f'<span class="due-date">{todo.due_date}</span>'
-        
-        # Format tag if present
-        tag_html = ""
-        if todo.tag:
-            tag_html = f'<span class="tag tag-{todo.tag.lower()}">{todo.tag}</span>'
-        
-        html += f"""        <div class="{' '.join(classes)}">
-            <span class="description">{todo.description}</span>
-            {date_html}
-            {tag_html}
-        </div>
-"""
-    
-    html += """    </div>
-</body>
-</html>"""
-    
-    return html
-
 def generate_todo_html(todos, is_done=False):
     html = ""
     for todo in todos:
@@ -434,6 +233,28 @@ def main():
         }
         .todo-item.done:hover {
             border-left-color: #888;
+        }
+        .todo-item.header {
+            border-left: none !important;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding: 0;
+            background: none;
+        }
+        .todo-item.header .description {
+            font-size: 22px;
+            font-weight: 500;
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            display: block;
+            width: 100%;
+        }
+        .todo-item.header:hover {
+            transform: none;
+        }
+        .todo-item.header:first-child {
+            margin-top: 0;
         }
     </style>
     <script>
