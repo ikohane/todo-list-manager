@@ -154,6 +154,9 @@ def main():
             border-left: 4px solid #ddd;
             background-color: #fff;
             transition: all 0.3s ease;
+            position: relative;
+            cursor: default;
+            user-select: none;
         }
         .todo-item:hover {
             transform: translateX(5px);
@@ -308,9 +311,20 @@ def main():
         }
     </style>
     <script>
+        let draggedItem = null;
+        let placeholder = null;
+        
+        function createPlaceholder() {
+            const div = document.createElement('div');
+            div.className = 'drop-target';
+            div.style.height = '2px';
+            div.style.backgroundColor = '#007bff';
+            div.style.margin = '10px 0';
+            return div;
+        }
+        
         function initDragAndDrop() {
             const items = document.querySelectorAll('.todo-item');
-            const sections = document.querySelectorAll('.todo-section');
             
             items.forEach(item => {
                 const handle = item.querySelector('.drag-handle');
@@ -318,95 +332,105 @@ def main():
                 
                 handle.addEventListener('mousedown', e => {
                     e.preventDefault();
-                    item.classList.add('dragging');
+                    e.stopPropagation();
                     
-                    const startY = e.clientY;
-                    const startTop = item.offsetTop;
-                    const parent = item.parentElement;
-                    const isHeader = item.classList.contains('header');
+                    draggedItem = item;
+                    const rect = item.getBoundingClientRect();
                     
-                    // Create drop targets
-                    const dropTargets = [];
-                    if (isHeader) {
-                        sections.forEach(section => {
-                            const target = document.createElement('div');
-                            target.className = 'drop-target';
-                            section.parentElement.insertBefore(target, section);
-                            dropTargets.push(target);
-                        });
-                    } else {
-                        const currentSection = item.closest('.todo-section');
-                        const sectionItems = currentSection.querySelectorAll('.todo-item:not(.header)');
-                        sectionItems.forEach(sectionItem => {
-                            const target = document.createElement('div');
-                            target.className = 'drop-target';
-                            sectionItem.parentElement.insertBefore(target, sectionItem);
-                            dropTargets.push(target);
-                        });
+                    // Create clone for dragging
+                    const clone = item.cloneNode(true);
+                    clone.style.position = 'fixed';
+                    clone.style.top = rect.top + 'px';
+                    clone.style.left = rect.left + 'px';
+                    clone.style.width = rect.width + 'px';
+                    clone.style.opacity = '0.8';
+                    clone.style.pointerEvents = 'none';
+                    clone.style.zIndex = '1000';
+                    document.body.appendChild(clone);
+                    
+                    // Create placeholder
+                    placeholder = createPlaceholder();
+                    item.parentNode.insertBefore(placeholder, item);
+                    
+                    // Hide original item
+                    item.style.display = 'none';
+                    
+                    const offsetX = e.clientX - rect.left;
+                    const offsetY = e.clientY - rect.top;
+                    
+                    function moveHandler(e) {
+                        const clone = document.querySelector('.todo-item[style*="position: fixed"]');
+                        if (!clone) return;
+                        
+                        // Move clone
+                        clone.style.top = (e.clientY - offsetY) + 'px';
+                        clone.style.left = (e.clientX - offsetX) + 'px';
+                        
+                        // Find potential drop target
+                        const isHeader = draggedItem.classList.contains('header');
+                        const dropTarget = isHeader ? 
+                            findHeaderDropTarget(e.clientY) : 
+                            findTaskDropTarget(e.clientY, draggedItem.closest('.todo-section'));
+                        
+                        // Move placeholder
+                        if (dropTarget && dropTarget !== placeholder) {
+                            const parent = placeholder.parentNode;
+                            parent.insertBefore(placeholder, dropTarget);
+                        }
                     }
                     
-                    const moveHandler = e => {
-                        const deltaY = e.clientY - startY;
-                        item.style.transform = `translateY(${deltaY}px)`;
+                    function findHeaderDropTarget(y) {
+                        const sections = document.querySelectorAll('.todo-section');
+                        let target = null;
                         
-                        // Show nearest drop target
-                        const itemRect = item.getBoundingClientRect();
-                        const itemCenter = itemRect.top + itemRect.height / 2;
-                        
-                        dropTargets.forEach(target => {
-                            const targetRect = target.getBoundingClientRect();
-                            const distance = Math.abs(targetRect.top - itemCenter);
-                            if (distance < 30) {
-                                target.style.display = 'block';
-                            } else {
-                                target.style.display = 'none';
+                        sections.forEach(section => {
+                            const rect = section.getBoundingClientRect();
+                            const midPoint = rect.top + rect.height / 2;
+                            
+                            if (y < midPoint && !target) {
+                                target = section;
                             }
                         });
-                    };
+                        
+                        return target;
+                    }
                     
-                    const upHandler = e => {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', upHandler);
-                        item.classList.remove('dragging');
-                        item.style.transform = '';
+                    function findTaskDropTarget(y, section) {
+                        const tasks = section.querySelectorAll('.todo-item:not(.header)');
+                        let target = null;
                         
-                        // Find nearest drop target
-                        const itemRect = item.getBoundingClientRect();
-                        const itemCenter = itemRect.top + itemRect.height / 2;
-                        let nearestTarget = null;
-                        let minDistance = Infinity;
-                        
-                        dropTargets.forEach(target => {
-                            const targetRect = target.getBoundingClientRect();
-                            const distance = Math.abs(targetRect.top - itemCenter);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                nearestTarget = target;
+                        tasks.forEach(task => {
+                            if (task === draggedItem) return;
+                            
+                            const rect = task.getBoundingClientRect();
+                            const midPoint = rect.top + rect.height / 2;
+                            
+                            if (y < midPoint && !target) {
+                                target = task;
                             }
                         });
                         
-                        // Move item to new position
-                        if (nearestTarget && minDistance < 30) {
-                            if (isHeader) {
-                                const targetSection = nearestTarget.nextElementSibling;
-                                if (targetSection) {
-                                    parent.insertBefore(item.closest('.todo-section'), targetSection);
-                                } else {
-                                    parent.appendChild(item.closest('.todo-section'));
-                                }
-                            } else {
-                                const targetItem = nearestTarget.nextElementSibling;
-                                if (targetItem) {
-                                    parent.insertBefore(item, targetItem);
-                                } else {
-                                    parent.appendChild(item);
-                                }
-                            }
+                        return target;
+                    }
+                    
+                    function upHandler(e) {
+                        const clone = document.querySelector('.todo-item[style*="position: fixed"]');
+                        if (clone) {
+                            clone.remove();
                         }
                         
-                        // Remove drop targets
-                        dropTargets.forEach(target => target.remove());
-                    };
+                        if (draggedItem && placeholder) {
+                            draggedItem.style.display = '';
+                            placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                            placeholder.remove();
+                        }
+                        
+                        draggedItem = null;
+                        placeholder = null;
+                        
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', upHandler);
+                    }
                     
                     document.addEventListener('mousemove', moveHandler);
                     document.addEventListener('mouseup', upHandler);
