@@ -61,6 +61,8 @@ def parse_todo_line(line, is_done=False):
 
 def generate_todo_html(todos, is_done=False):
     html = ""
+    current_section = None
+    
     for todo in todos:
         if todo is None:
             continue
@@ -71,6 +73,12 @@ def generate_todo_html(todos, is_done=False):
             classes.append("done")
         if todo.is_header:
             classes.append("header")
+            # Close previous section if exists
+            if current_section is not None:
+                html += "        </div>\n"
+            # Start new section
+            html += '        <div class="todo-section">\n'
+            current_section = todo.description
         
         # Format due date if present
         date_html = ""
@@ -89,12 +97,20 @@ def generate_todo_html(todos, is_done=False):
         if todo.tag:
             tag_html = f'<span class="tag tag-{todo.tag.lower()}">{todo.tag}</span>'
         
-        html += f"""        <div class="{' '.join(classes)}">
-            <span class="description">{todo.description}</span>
-            {date_html}
-            {tag_html}
-        </div>
+        # Add drag handle
+        drag_html = '<span class="drag-handle">⋮⋮</span>'
+        
+        html += f"""            <div class="{' '.join(classes)}">
+                {drag_html}
+                <span class="description">{todo.description}</span>
+                {date_html}
+                {tag_html}
+            </div>
 """
+    
+    # Close last section if exists
+    if current_section is not None:
+        html += "        </div>\n"
     return html
 
 def main():
@@ -264,11 +280,140 @@ def main():
         .todo-item.header:hover {
             transform: none;
         }
+        .drag-handle {
+            cursor: grab;
+            color: #ccc;
+            padding: 0 8px;
+            visibility: hidden;
+            user-select: none;
+        }
+        .todo-item:hover .drag-handle {
+            visibility: visible;
+        }
+        .todo-item.dragging {
+            opacity: 0.5;
+            background-color: #f8f9fa;
+        }
+        .todo-section {
+            margin-bottom: 20px;
+        }
+        .drop-target {
+            border: 2px dashed #007bff;
+            margin: 10px 0;
+            height: 4px;
+            display: none;
+        }
         .todo-item.header:first-child {
             margin-top: 0;
         }
     </style>
     <script>
+        function initDragAndDrop() {
+            const items = document.querySelectorAll('.todo-item');
+            const sections = document.querySelectorAll('.todo-section');
+            
+            items.forEach(item => {
+                const handle = item.querySelector('.drag-handle');
+                if (!handle) return;
+                
+                handle.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    item.classList.add('dragging');
+                    
+                    const startY = e.clientY;
+                    const startTop = item.offsetTop;
+                    const parent = item.parentElement;
+                    const isHeader = item.classList.contains('header');
+                    
+                    // Create drop targets
+                    const dropTargets = [];
+                    if (isHeader) {
+                        sections.forEach(section => {
+                            const target = document.createElement('div');
+                            target.className = 'drop-target';
+                            section.parentElement.insertBefore(target, section);
+                            dropTargets.push(target);
+                        });
+                    } else {
+                        const currentSection = item.closest('.todo-section');
+                        const sectionItems = currentSection.querySelectorAll('.todo-item:not(.header)');
+                        sectionItems.forEach(sectionItem => {
+                            const target = document.createElement('div');
+                            target.className = 'drop-target';
+                            sectionItem.parentElement.insertBefore(target, sectionItem);
+                            dropTargets.push(target);
+                        });
+                    }
+                    
+                    const moveHandler = e => {
+                        const deltaY = e.clientY - startY;
+                        item.style.transform = `translateY(${deltaY}px)`;
+                        
+                        // Show nearest drop target
+                        const itemRect = item.getBoundingClientRect();
+                        const itemCenter = itemRect.top + itemRect.height / 2;
+                        
+                        dropTargets.forEach(target => {
+                            const targetRect = target.getBoundingClientRect();
+                            const distance = Math.abs(targetRect.top - itemCenter);
+                            if (distance < 30) {
+                                target.style.display = 'block';
+                            } else {
+                                target.style.display = 'none';
+                            }
+                        });
+                    };
+                    
+                    const upHandler = e => {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', upHandler);
+                        item.classList.remove('dragging');
+                        item.style.transform = '';
+                        
+                        // Find nearest drop target
+                        const itemRect = item.getBoundingClientRect();
+                        const itemCenter = itemRect.top + itemRect.height / 2;
+                        let nearestTarget = null;
+                        let minDistance = Infinity;
+                        
+                        dropTargets.forEach(target => {
+                            const targetRect = target.getBoundingClientRect();
+                            const distance = Math.abs(targetRect.top - itemCenter);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                nearestTarget = target;
+                            }
+                        });
+                        
+                        // Move item to new position
+                        if (nearestTarget && minDistance < 30) {
+                            if (isHeader) {
+                                const targetSection = nearestTarget.nextElementSibling;
+                                if (targetSection) {
+                                    parent.insertBefore(item.closest('.todo-section'), targetSection);
+                                } else {
+                                    parent.appendChild(item.closest('.todo-section'));
+                                }
+                            } else {
+                                const targetItem = nearestTarget.nextElementSibling;
+                                if (targetItem) {
+                                    parent.insertBefore(item, targetItem);
+                                } else {
+                                    parent.appendChild(item);
+                                }
+                            }
+                        }
+                        
+                        // Remove drop targets
+                        dropTargets.forEach(target => target.remove());
+                    };
+                    
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', upHandler);
+                });
+            });
+        }
+        
         function exportToText() {
             const htmlContent = document.documentElement.outerHTML;
             const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -299,7 +444,7 @@ def main():
         }
     </script>
 </head>
-<body>
+<body onload="initDragAndDrop()">
     <div class="container">
         <div class="header">
             <span>Todo List</span>
