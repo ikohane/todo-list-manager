@@ -137,14 +137,14 @@ def main():
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             line-height: 1.6;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 10px;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
             background-color: #f5f5f5;
         }
         .container {
             background-color: white;
-            padding: 15px;
+            padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -214,20 +214,6 @@ def main():
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-        }
-        .timestamp {
-            font-size: 14px;
-            color: #666;
-            flex-basis: 100%;
-            margin-top: 10px;
-            text-align: right;
-        }
-        .date-past {
-            color: #dc3545 !important;
-        }
-        .date-future {
-            color: #0056b3 !important;
         }
         .export-button {
             background-color: #007bff;
@@ -266,22 +252,19 @@ def main():
         }
         .todo-item.header {
             border-left: none !important;
-            margin-top: 15px;
-            margin-bottom: 10px;
-            padding: 0;
-            background: none;
+            margin-top: 20px;
+            padding-left: 0;
         }
         .todo-item.header .description {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 500;
-            color: #2c3e50;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 8px;
-            display: block;
-            width: 100%;
+            color: #444;
         }
         .todo-item.header:hover {
             transform: none;
+        }
+        .todo-item.header:first-child {
+            margin-top: 0;
         }
         .drag-handle {
             cursor: grab;
@@ -305,9 +288,6 @@ def main():
             margin: 10px 0;
             height: 4px;
             display: none;
-        }
-        .todo-item.header:first-child {
-            margin-top: 0;
         }
     </style>
     <script>
@@ -421,7 +401,8 @@ def main():
                         
                         if (draggedItem && placeholder) {
                             draggedItem.style.display = '';
-                            placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                            const parent = placeholder.parentNode;
+                            parent.insertBefore(draggedItem, placeholder);
                             placeholder.remove();
                         }
                         
