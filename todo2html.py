@@ -73,11 +73,19 @@ def generate_html(todos):
             padding: 10px;
             border-left: 4px solid #ddd;
             background-color: #fff;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease;
+            cursor: move;
+            user-select: none;
         }
         .todo-item:hover {
-            transform: translateX(5px);
             border-left-color: #007bff;
+        }
+        .todo-item.dragging {
+            opacity: 0.5;
+            background-color: #f8f9fa;
+        }
+        .todo-item.drag-over {
+            border-top: 2px solid #007bff;
         }
         .level-1 { margin-left: 0px; }
         .level-2 { margin-left: 30px; }
@@ -128,12 +136,34 @@ def generate_html(todos):
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .save-button {
+            padding: 8px 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .save-button:hover {
+            background-color: #218838;
+        }
+        .save-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">Todo List</div>
+        <div class="header">
+            <span>Todo List</span>
+            <button class="save-button" onclick="saveTodoOrder()" disabled>Save Order</button>
+        </div>
 """
     
     for todo in todos:
@@ -163,7 +193,18 @@ def generate_html(todos):
         if todo.tag:
             tag_html = f'<span class="tag tag-{todo.tag.lower()}">{todo.tag}</span>'
         
-        html += f"""        <div class="{' '.join(classes)}">
+        # Create a data string with todo information
+        todo_data = {
+            "description": todo.description,
+            "level": todo.level,
+            "indent_level": todo.indent_level,
+            "due_date": todo.due_date or "",
+            "tag": todo.tag or ""
+        }
+        import json
+        todo_data_str = json.dumps(todo_data).replace('"', '&quot;')
+        
+        html += f"""        <div class="{' '.join(classes)}" draggable="true" data-todo="{todo_data_str}">
             <span class="description">{todo.description}</span>
             {date_html}
             {tag_html}
@@ -171,6 +212,113 @@ def generate_html(todos):
 """
     
     html += """    </div>
+    <script>
+        let dragSrcEl = null;
+        const saveButton = document.querySelector('.save-button');
+        let hasChanges = false;
+
+        function handleDragStart(e) {
+            this.classList.add('dragging');
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            if (dragSrcEl !== this) {
+                const container = document.querySelector('.container');
+                const items = Array.from(container.querySelectorAll('.todo-item'));
+                const srcIndex = items.indexOf(dragSrcEl);
+                const destIndex = items.indexOf(this);
+
+                if (srcIndex < destIndex) {
+                    this.parentNode.insertBefore(dragSrcEl, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(dragSrcEl, this);
+                }
+
+                hasChanges = true;
+                saveButton.disabled = false;
+            }
+
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.todo-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        }
+
+        function saveTodoOrder() {
+            const items = document.querySelectorAll('.todo-item');
+            const todos = Array.from(items).map(item => {
+                return JSON.parse(item.getAttribute('data-todo'));
+            });
+
+            // Convert todos to text format
+            const todoText = todos.map(todo => {
+                const indent = ' '.repeat(todo.indent_level);
+                const level = '+'.repeat(todo.level);
+                let line = `${indent}${level} ${todo.description}`;
+                if (todo.due_date) {
+                    line += ` ${todo.due_date}`;
+                }
+                if (todo.tag) {
+                    line += ` :${todo.tag}`;
+                }
+                return line;
+            }).join('\\n');
+
+            // Create a temporary textarea to copy the content
+            const textarea = document.createElement('textarea');
+            textarea.value = todoText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            // Update button state
+            saveButton.disabled = true;
+            hasChanges = false;
+            saveButton.textContent = 'Copied to Clipboard!';
+            setTimeout(() => {
+                saveButton.textContent = 'Save Order';
+            }, 2000);
+
+            // Show instructions
+            alert('The new todo list has been copied to your clipboard.\\n\\nTo save the changes:\\n1. Open todos.txt in your text editor\\n2. Replace the entire content with the copied text (Ctrl+A, Ctrl+V)\\n3. Save the file\\n4. Run generate_todo.sh again to update the HTML');
+        }
+
+        document.querySelectorAll('.todo-item').forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragenter', handleDragEnter);
+            item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('drop', handleDrop);
+        });
+    </script>
 </body>
 </html>"""
     
